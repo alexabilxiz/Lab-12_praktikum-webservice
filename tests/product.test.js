@@ -31,12 +31,14 @@ test('product: reserve stok melebihi persediaan mengembalikan 409', async () => 
   assert.equal(res.status, 409);
 });
 
+// Produk 1 khusus dipakai test ini untuk memeriksa stok. Node menjalankan file test
+// secara paralel, jadi produk yang stoknya dibandingkan tidak boleh disentuh test lain.
 test('product: reserve (efek samping) mengurangi stok tepat sebesar qty', async () => {
-  const sebelum = await (await ambil(PRODUCT, '/products/2')).json();
-  const res = await kirim(PRODUCT, '/products/2/reserve', { qty: 2 });
+  const sebelum = await (await ambil(PRODUCT, '/products/1')).json();
+  const res = await kirim(PRODUCT, '/products/1/reserve', { qty: 1 });
   assert.equal(res.status, 200);
-  const sesudah = await (await ambil(PRODUCT, '/products/2')).json();
-  assert.equal(sesudah.stock, sebelum.stock - 2);
+  const sesudah = await (await ambil(PRODUCT, '/products/1')).json();
+  assert.equal(sesudah.stock, sebelum.stock - 1);
 });
 
 test('product: respons memuat header X-Request-Id dan /metrics bisa dibaca', async () => {
