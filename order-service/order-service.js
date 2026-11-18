@@ -1,0 +1,43 @@
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+const PRODUCT_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:3000';
+const orders = [];
+
+// /health order-service ikut memeriksa product-service, karena tanpa itu order tidak bisa dibuat
+require('./observability')(app, 'order-service', {
+  dependencies: {
+    'product-service': async () => (await fetch(`${PRODUCT_URL}/health`, { signal: AbortSignal.timeout(1000) })).ok,
+  },
+});
+
+app.post('/orders', async (req, res) => {
+  const { productId, qty } = req.body || {};
+  if (!Number.isInteger(productId) || !Number.isInteger(qty) || qty < 1)
+    return res.status(400).json({ error: 'productId dan qty harus bilangan bulat > 0' });
+
+  let resp;
+  try {
+    resp = await fetch(`${PRODUCT_URL}/products/${productId}/reserve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Request-Id': req.id },
+      body: JSON.stringify({ qty }),
+      signal: AbortSignal.timeout(2000),
+    });
+  } catch (err) {
+    return res.status(503).json({ error: 'product-service tidak tersedia, coba lagi nanti' });
+  }
+
+  const data = await resp.json();
+  if (!resp.ok) return res.status(resp.status).json(data);   // 404 / 409 diteruskan apa adanya
+
+  const order = { id: orders.length + 1, productId, productName: data.name,
+                  qty, total: data.price * qty, createdAt: new Date().toISOString() };
+  orders.push(order);
+  res.status(201).json(order);
+});
+
+app.get('/orders', (req, res) => res.json(orders));
+
+app.listen(process.env.PORT || 3001, () => console.log('order-service di :3001'));

@@ -1,0 +1,10 @@
+{
+  "name": "toko",
+  "version": "1.0.0",
+  "description": "Toko microservices: gateway, product-service, order-service + test otomatis",
+  "scripts": {
+    "test": "node --test tests/product.test.js tests/order.test.js tests/gateway.test.js",
+    "monitor": "node monitor.js"
+  },
+  "license": "ISC"
+}
