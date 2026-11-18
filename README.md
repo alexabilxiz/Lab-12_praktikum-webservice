@@ -1,4 +1,4 @@
-![CI](https://github.com/USERNAME/REPO/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/alexabilxiz/Lab-12_praktikum-webservice/actions/workflows/ci.yml/badge.svg?branch=main)
 
 # Toko Microservices (Lab 12: Automated Testing & Monitoring)
 
