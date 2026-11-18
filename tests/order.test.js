@@ -11,11 +11,11 @@ test('order: GET /health ok dan melaporkan status product-service', async () => 
 });
 
 test('order: POST /orders (sukses) membuat pesanan 201 dengan total benar', async () => {
-  const produk = await (await ambil(PRODUCT, '/products/1')).json();
-  const res = await kirim(ORDER, '/orders', { productId: 1, qty: 2 });
+  const produk = await (await ambil(PRODUCT, '/products/2')).json();
+  const res = await kirim(ORDER, '/orders', { productId: 2, qty: 2 });
   assert.equal(res.status, 201);
   const o = await res.json();
-  assert.equal(o.productId, 1);
+  assert.equal(o.productId, 2);
   assert.equal(o.qty, 2);
   assert.equal(o.total, produk.price * 2);
 });
@@ -31,6 +31,7 @@ test('order: produk tak dikenal -> 404, stok kurang -> 409 (diteruskan dari prod
   assert.equal((await kirim(ORDER, '/orders', { productId: 3, qty: 100000 })).status, 409);
 });
 
+// Produk 3 khusus dipakai test order untuk membandingkan stok (lihat catatan di product.test.js)
 test('order: pesanan sukses mengurangi stok dan muncul di GET /orders', async () => {
   const sebelum = await (await ambil(PRODUCT, '/products/3')).json();
   const buat = await kirim(ORDER, '/orders', { productId: 3, qty: 1 });
@@ -42,12 +43,13 @@ test('order: pesanan sukses mengurangi stok dan muncul di GET /orders', async ()
   assert.ok(daftar.some(x => x.id === o.id));
 });
 
-test('order: pesanan gagal (409) tidak mengurangi stok maupun menambah daftar order', async () => {
+test('order: pesanan gagal (409) tidak mengurangi stok maupun tercatat sebagai order', async () => {
   const stokAwal = (await (await ambil(PRODUCT, '/products/3')).json()).stock;
-  const jumlahAwal = (await (await ambil(ORDER, '/orders')).json()).length;
-  await kirim(ORDER, '/orders', { productId: 3, qty: stokAwal + 1 });
+  const qtyBerlebih = stokAwal + 7777;   // angka unik agar tidak tertukar dengan order lain
+  assert.equal((await kirim(ORDER, '/orders', { productId: 3, qty: qtyBerlebih })).status, 409);
   assert.equal((await (await ambil(PRODUCT, '/products/3')).json()).stock, stokAwal);
-  assert.equal((await (await ambil(ORDER, '/orders')).json()).length, jumlahAwal);
+  const daftar = await (await ambil(ORDER, '/orders')).json();
+  assert.ok(!daftar.some(o => o.productId === 3 && o.qty === qtyBerlebih));
 });
 
 test('order: ID permintaan dari pemanggil dikembalikan di header respons', async () => {
